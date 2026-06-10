@@ -111,7 +111,14 @@ continue_or_abort "Proceed with these settings?"
 mkdir -p "$STAGING"
 
 # ---------------------------------------------------------------------------
-# 2. Pull the frozen buckets down into staging (tmux)
+# 2. Create the new index in Splunk
+# ---------------------------------------------------------------------------
+echo ">> creating index '$INDEX' in Splunk"
+"$SPLUNK" add index "$INDEX"
+continue_or_abort "Index '$INDEX' created."
+
+# ---------------------------------------------------------------------------
+# 3. Pull the frozen buckets down into staging (tmux)
 # ---------------------------------------------------------------------------
 rsync_sessions=( "rsync_$INDEX" )
 run_in_tmux "rsync_$INDEX" \
@@ -120,7 +127,7 @@ wait_for_sessions rsync_sessions
 continue_or_abort "rsync into staging complete."
 
 # ---------------------------------------------------------------------------
-# 3. Rename buckets in staging: drop the GUID-style remote suffix and the tag
+# 4. Rename buckets in staging: drop the GUID-style remote suffix and the tag
 # ---------------------------------------------------------------------------
 echo ">> renaming buckets in $STAGING"
 pushd "$STAGING" >/dev/null
@@ -136,7 +143,7 @@ popd >/dev/null
 continue_or_abort "Bucket renaming complete."
 
 # ---------------------------------------------------------------------------
-# 4. Move buckets into the destination index db path
+# 5. Move buckets into the destination index db path
 # ---------------------------------------------------------------------------
 echo ">> moving buckets into $DEST_DB"
 mkdir -p "$DEST_DB"
@@ -144,7 +151,7 @@ mv "$STAGING"/db_* "$DEST_DB"/ 2>/dev/null || true
 continue_or_abort "Buckets moved into destination index."
 
 # ---------------------------------------------------------------------------
-# 5. Rebuild every bucket (one tmux session per bucket so they run in parallel)
+# 6. Rebuild every bucket (one tmux session per bucket so they run in parallel)
 # ---------------------------------------------------------------------------
 rebuild_sessions=()
 i=0
@@ -159,7 +166,7 @@ wait_for_sessions rebuild_sessions
 continue_or_abort "All bucket rebuilds complete."
 
 # ---------------------------------------------------------------------------
-# 6. Recover bucket metadata (tmux)
+# 7. Recover bucket metadata (tmux)
 # ---------------------------------------------------------------------------
 recover_sessions=()
 i=0
@@ -175,7 +182,7 @@ wait_for_sessions recover_sessions
 continue_or_abort "Metadata recovery complete."
 
 # ---------------------------------------------------------------------------
-# 7. Restart Splunk so the new index is searchable
+# 8. Restart Splunk so the new index is searchable
 # ---------------------------------------------------------------------------
 echo ">> restarting Splunk"
 "$SPLUNK" restart
