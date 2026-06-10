@@ -114,8 +114,16 @@ mkdir -p "$STAGING"
 # 2. Create the new index in Splunk
 # ---------------------------------------------------------------------------
 echo ">> creating index '$INDEX' in Splunk"
-"$SPLUNK" add index "$INDEX"
-continue_or_abort "Index '$INDEX' created."
+# Pin the index to the destination path. Buckets land in $DEST_DB (the cold
+# path); home/thawed are derived as siblings per Splunk's db/thaweddb convention.
+DEST_PARENT="$(dirname "$DEST_DB")"
+HOME_PATH="$DEST_PARENT/db"
+THAWED_PATH="$DEST_PARENT/thaweddb"
+"$SPLUNK" add index "$INDEX" \
+    -homePath "$HOME_PATH" \
+    -coldPath "$DEST_DB" \
+    -thawedPath "$THAWED_PATH"
+continue_or_abort "Index '$INDEX' created (cold=$DEST_DB)."
 
 # ---------------------------------------------------------------------------
 # 3. Pull the frozen buckets down into staging (tmux)
